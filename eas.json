@@ -1,0 +1,1 @@
+{"build":{"preview":{"android":{"buildType":"apk"},"distribution":"internal"},"production":{}},"cli":{"version":">= 16.0.0"},"submit":{"production":{}}}
