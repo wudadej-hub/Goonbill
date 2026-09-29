@@ -1,15 +1,15 @@
 export const theme = {
-  bg: '#101418',
-  surface: '#1a212b',
-  surface2: '#232d3a',
-  border: '#2e3a4a',
-  text: '#f2f5f8',
-  muted: '#9aa7b8',
-  accent: '#3ddc84', // money green
-  accentDark: '#1f9d57',
-  danger: '#ff6b6b',
-  warning: '#ffb020',
-  blue: '#4da3ff',
+  bg: '#000000',
+  surface: '#141414',
+  surface2: '#1f1f1f',
+  border: '#2b2b2b',
+  text: '#ffffff',
+  muted: '#a3a3a3',
+  accent: '#ff6a00', // gg33 orange
+  accentDark: '#b34a00',
+  danger: '#ff3b30',
+  warning: '#ff9500',
+  blue: '#ff6a00',
   radius: 14,
 };
 

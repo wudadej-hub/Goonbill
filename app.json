@@ -2,7 +2,7 @@
   "expo": {
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#101418",
+        "backgroundColor": "#000000",
         "foregroundImage": "./assets/icon.png"
       },
       "package": "com.goonbill.app",
