@@ -16,6 +16,7 @@ import {
   SyncUser,
 } from '../../lib/sync';
 import { stripeConfigured } from '../../lib/payments';
+import { billingSupported, checkEntitlement, type Entitlement } from '../../lib/billing';
 import { refreshReminders, reminderDays } from '../../lib/reminders';
 import { theme, spacing } from '../../lib/theme';
 import { Button, Card, Field, Screen, Title } from '../../components/ui';
@@ -54,6 +55,8 @@ export default function SettingsScreen() {
   // Stripe
   const [stripeKey, setStripeKey] = useState('');
   const [stripeReady, setStripeReady] = useState(false);
+  // GoonBill subscription (Google Play Billing)
+  const [entitlement, setEntitlement] = useState<Entitlement | 'checking'>('checking');
   // Other online payment options
   const [paypalMe, setPaypalMe] = useState('');
   const [interacEmail, setInteracEmail] = useState('');
@@ -101,6 +104,7 @@ export default function SettingsScreen() {
     } catch {
       setAccount(null);
     }
+    setEntitlement(await checkEntitlement());
   }, []);
 
   useFocusEffect(
@@ -279,6 +283,24 @@ export default function SettingsScreen() {
             <Text style={styles.msgText}>{message}</Text>
           </Card>
         ) : null}
+
+        <Text style={styles.sectionTitle}>Subscription</Text>
+        <Card>
+          <Text style={styles.subStatus}>
+            {entitlement === 'checking'
+              ? 'Checking…'
+              : entitlement === 'active'
+                ? '✅ Active — thank you for supporting GoonBill.'
+                : billingSupported()
+                  ? 'Not subscribed — includes a 28-day free trial.'
+                  : 'Managed through Google Play.'}
+          </Text>
+          <Button
+            title={entitlement === 'active' ? 'Manage subscription' : 'View plans'}
+            variant="secondary"
+            onPress={() => router.push('/subscribe')}
+          />
+        </Card>
 
         <Text style={styles.sectionTitle}>Business profile</Text>
         <Text style={styles.sectionHint}>This appears on your PDF invoices.</Text>
@@ -557,6 +579,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row' },
   msgCard: { borderColor: theme.accent },
   msgText: { color: theme.text, fontSize: 14 },
+  subStatus: { color: theme.text, fontSize: 15, marginBottom: spacing.sm, lineHeight: 22 },
   keyOk: { borderColor: theme.accent },
   keyStatus: { color: theme.muted, fontSize: 14, fontWeight: '600', marginBottom: spacing.sm },
   providerCard: {

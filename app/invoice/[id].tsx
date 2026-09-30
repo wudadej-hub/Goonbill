@@ -18,7 +18,7 @@ import {
   setInvoiceStatus,
 } from '../../lib/db';
 import { formatCents, formatDate } from '../../lib/format';
-import { invoiceHtml } from '../../lib/pdf';
+import { invoiceHtml, loadInvoicePhotos } from '../../lib/pdf';
 import { theme, spacing } from '../../lib/theme';
 import { Button, Card, EmptyState, Screen, StatusBadge, Title } from '../../components/ui';
 import {
@@ -191,7 +191,8 @@ function InvoiceDetailInner() {
     if (!invoice) return;
     setSharing(true);
     try {
-      const { uri } = await Print.printToFileAsync({ html: invoiceHtml(invoice) });
+      const photos = await loadInvoicePhotos(invoice.id);
+      const { uri } = await Print.printToFileAsync({ html: invoiceHtml(invoice, photos) });
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, {
           mimeType: 'application/pdf',

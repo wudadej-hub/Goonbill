@@ -1,5 +1,6 @@
-import { InvoiceWithItems, QuoteWithItems, getSetting } from './db';
+import { InvoiceWithItems, QuoteWithItems, getSetting, listJobPhotos } from './db';
 import { formatCents, formatDate } from './format';
+import * as FileSystem from 'expo-file-system/legacy';
 
 function esc(s: string): string {
   return (s ?? '')
@@ -9,8 +10,46 @@ function esc(s: string): string {
     .replace(/"/g, '&quot;');
 }
 
+/** A before/after Job Doc photo embedded in the invoice PDF as a data URI. */
+export interface InvoicePhoto {
+  kind: 'before' | 'after';
+  caption: string;
+  dataUri: string;
+}
+
+function mimeFor(uri: string): string {
+  const ext = uri.split('.').pop()?.toLowerCase();
+  if (ext === 'png') return 'image/png';
+  if (ext === 'webp') return 'image/webp';
+  return 'image/jpeg';
+}
+
+/**
+ * Load an invoice's before/after Job Doc photos as embeddable data URIs.
+ * Photos that can't be read are skipped — the PDF still generates.
+ */
+export async function loadInvoicePhotos(invoiceId: number): Promise<InvoicePhoto[]> {
+  const photos = listJobPhotos(invoiceId).filter((p) => p.kind === 'before' || p.kind === 'after');
+  const out: InvoicePhoto[] = [];
+  for (const p of photos) {
+    try {
+      const base64 = await FileSystem.readAsStringAsync(p.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      out.push({
+        kind: p.kind as 'before' | 'after',
+        caption: p.caption,
+        dataUri: `data:${mimeFor(p.uri)};base64,${base64}`,
+      });
+    } catch (e) {
+      console.warn('[pdf] could not read job photo', p.uri, e);
+    }
+  }
+  return out;
+}
+
 /** Render a clean, professional invoice as printable HTML for expo-print. */
-export function invoiceHtml(inv: InvoiceWithItems): string {
+export function invoiceHtml(inv: InvoiceWithItems, photos: InvoicePhoto[] = []): string {
   const businessName = esc(getSetting('business_name', 'Your Business'));
   const businessAddress = esc(getSetting('business_address', ''));
   const businessPhone = esc(getSetting('business_phone', ''));
@@ -31,6 +70,25 @@ export function invoiceHtml(inv: InvoiceWithItems): string {
 
   const gstPct = (inv.gst_rate * 100).toFixed(inv.gst_rate * 100 % 1 === 0 ? 0 : 2);
   const pstPct = (inv.pst_rate * 100).toFixed(inv.pst_rate * 100 % 1 === 0 ? 0 : 2);
+
+  const before = photos.filter((p) => p.kind === 'before');
+  const after = photos.filter((p) => p.kind === 'after');
+  const photoCard = (p: InvoicePhoto, label: string) => `
+    <div class="photo"><img src="${p.dataUri}" /><p><strong>${label}</strong>${
+      p.caption ? ` — ${esc(p.caption)}` : ''
+    }</p></div>`;
+  const photosSection =
+    photos.length === 0
+      ? ''
+      : `
+  <div class="photos"><h3>Before / After</h3>
+    ${
+      before.length
+        ? `<div class="photo-grid">${before.map((p) => photoCard(p, 'Before')).join('')}</div>`
+        : ''
+    }
+    ${after.length ? `<div class="photo-grid">${after.map((p) => photoCard(p, 'After')).join('')}</div>` : ''}
+  </div>`;
 
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8">
@@ -54,6 +112,12 @@ export function invoiceHtml(inv: InvoiceWithItems): string {
   .totals .grand { border-top: 2px solid #111; margin-top: 6px; padding-top: 10px; font-size: 18px; font-weight: bold; }
   .notes { margin-top: 28px; font-size: 13px; color: #555; }
   .notes h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #888; margin: 0 0 6px 0; }
+  .photos { margin-top: 28px; }
+  .photos h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #888; margin: 0 0 10px 0; }
+  .photo-grid { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .photo { flex: 1 1 40%; min-width: 200px; }
+  .photo img { width: 100%; border-radius: 8px; display: block; }
+  .photo p { font-size: 12px; color: #555; margin: 6px 0 0 0; }
   .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #e5e5e5; font-size: 12px; color: #999; text-align: center; }
 </style></head>
 <body>
@@ -96,6 +160,8 @@ export function invoiceHtml(inv: InvoiceWithItems): string {
 
   ${inv.payment_terms ? `<div class="notes"><h3>Payment Terms</h3><p>${esc(inv.payment_terms)}</p></div>` : ''}
   ${getSetting('payment_methods') ? `<div class="notes"><h3>Accepted Payment Methods</h3><p>${esc(getSetting('payment_methods'))}</p></div>` : ''}
+
+  ${photosSection}
 
   <div class="footer">Thank you for your business.</div>
 </body></html>`;
