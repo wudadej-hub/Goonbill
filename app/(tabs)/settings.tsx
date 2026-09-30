@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { getSetting, setSetting } from '../../lib/db';
 import { getApiKey, getCustomApiSecrets, getGeminiKey, setApiKey, setCustomApiSecrets, setGeminiKey } from '../../lib/secrets';
 import { VOICE_PROVIDERS, VoiceProvider, getVoiceProvider, setVoiceProvider } from '../../lib/voice';
@@ -266,6 +266,13 @@ export default function SettingsScreen() {
     <Screen style={{ padding: 0 }}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <Title>Settings</Title>
+
+        <Button
+          title="📖 How to use GoonBill"
+          variant="secondary"
+          onPress={() => router.push('/howto')}
+          style={{ marginBottom: spacing.md }}
+        />
 
         {message ? (
           <Card style={styles.msgCard}>

@@ -40,6 +40,7 @@ export default function RootLayout() {
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="howto" options={{ title: 'How to use' }} />
         <Stack.Screen name="invoice/[id]" options={{ title: 'Invoice' }} />
       </Stack>
     </>
